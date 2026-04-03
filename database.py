@@ -160,6 +160,38 @@ def init_db():
             )
         """)
 
+        # Métricas mensais do Instagram
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS instagram_metricas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                mes TEXT NOT NULL UNIQUE,
+                seguidores INTEGER DEFAULT 0,
+                seguidores_novos INTEGER DEFAULT 0,
+                alcance INTEGER DEFAULT 0,
+                impressoes INTEGER DEFAULT 0,
+                visitas_perfil INTEGER DEFAULT 0,
+                cliques_link INTEGER DEFAULT 0,
+                observacoes TEXT,
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Despesas de marketing (campanhas / ações específicas)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS marketing_campanhas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                tipo TEXT NOT NULL,
+                data_inicio DATE NOT NULL,
+                data_fim DATE,
+                investimento REAL NOT NULL DEFAULT 0,
+                alcance_estimado INTEGER DEFAULT 0,
+                locacoes_geradas INTEGER DEFAULT 0,
+                observacoes TEXT,
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         # Inserir configs padrão se não existirem
         defaults = {
             "empresa_nome": "Operário - Serviços e Locações",
@@ -780,3 +812,101 @@ def parcelas_pagas_equipamento(equipamento_id):
             WHERE pe.equipamento_id = ? AND p.paga = 1
         """, (equipamento_id,)).fetchone()
         return row["total"] if row else 0
+
+
+# ──────────────────────────────────────────────
+# Instagram — métricas mensais
+# ──────────────────────────────────────────────
+def listar_instagram_metricas():
+    with get_conn() as conn:
+        return conn.execute("SELECT * FROM instagram_metricas ORDER BY mes DESC").fetchall()
+
+
+def get_instagram_metrica(mes):
+    with get_conn() as conn:
+        return conn.execute("SELECT * FROM instagram_metricas WHERE mes = ?", (mes,)).fetchone()
+
+
+def salvar_instagram_metrica(mes, seguidores, seguidores_novos, alcance,
+                              impressoes, visitas_perfil, cliques_link, observacoes):
+    with get_conn() as conn:
+        existing = conn.execute("SELECT id FROM instagram_metricas WHERE mes = ?", (mes,)).fetchone()
+        if existing:
+            conn.execute("""
+                UPDATE instagram_metricas
+                SET seguidores=?, seguidores_novos=?, alcance=?, impressoes=?,
+                    visitas_perfil=?, cliques_link=?, observacoes=?
+                WHERE mes=?
+            """, (seguidores, seguidores_novos, alcance, impressoes,
+                  visitas_perfil, cliques_link, observacoes, mes))
+        else:
+            conn.execute("""
+                INSERT INTO instagram_metricas (mes, seguidores, seguidores_novos, alcance,
+                    impressoes, visitas_perfil, cliques_link, observacoes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (mes, seguidores, seguidores_novos, alcance, impressoes,
+                  visitas_perfil, cliques_link, observacoes))
+
+
+def excluir_instagram_metrica(mes):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM instagram_metricas WHERE mes = ?", (mes,))
+
+
+# ──────────────────────────────────────────────
+# Marketing — campanhas
+# ──────────────────────────────────────────────
+def listar_campanhas():
+    with get_conn() as conn:
+        return conn.execute("SELECT * FROM marketing_campanhas ORDER BY data_inicio DESC").fetchall()
+
+
+def criar_campanha(nome, tipo, data_inicio, data_fim, investimento,
+                   alcance_estimado, locacoes_geradas, observacoes):
+    with get_conn() as conn:
+        conn.execute("""
+            INSERT INTO marketing_campanhas (nome, tipo, data_inicio, data_fim, investimento,
+                alcance_estimado, locacoes_geradas, observacoes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (nome, tipo, data_inicio, data_fim, investimento,
+              alcance_estimado, locacoes_geradas, observacoes))
+
+
+def atualizar_campanha(cid, nome, tipo, data_inicio, data_fim, investimento,
+                       alcance_estimado, locacoes_geradas, observacoes):
+    with get_conn() as conn:
+        conn.execute("""
+            UPDATE marketing_campanhas
+            SET nome=?, tipo=?, data_inicio=?, data_fim=?, investimento=?,
+                alcance_estimado=?, locacoes_geradas=?, observacoes=?
+            WHERE id=?
+        """, (nome, tipo, data_inicio, data_fim, investimento,
+              alcance_estimado, locacoes_geradas, observacoes, cid))
+
+
+def excluir_campanha(cid):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM marketing_campanhas WHERE id = ?", (cid,))
+
+
+def gastos_marketing_mes(mes):
+    """Retorna total de gastos com marketing/tráfego no mês (das despesas gerais + campanhas)."""
+    with get_conn() as conn:
+        row = conn.execute("""
+            SELECT COALESCE(SUM(valor), 0) as total FROM despesas
+            WHERE strftime('%Y-%m', data) = ?
+            AND (categoria = 'marketing'
+                 OR descricao LIKE '%ráfego%' OR descricao LIKE '%rafego%'
+                 OR descricao LIKE '%Marketing%' OR descricao LIKE '%marketing%'
+                 OR descricao LIKE '%Flyer%' OR descricao LIKE '%flyer%'
+                 OR descricao LIKE '%Adesivo%' OR descricao LIKE '%adesivo%')
+        """, (mes,)).fetchone()
+        desp_total = row["total"] if row else 0
+
+        camp = conn.execute("""
+            SELECT COALESCE(SUM(investimento), 0) as total FROM marketing_campanhas
+            WHERE strftime('%Y-%m', data_inicio) = ?
+        """, (mes,)).fetchone()
+        camp_total = camp["total"] if camp else 0
+
+        return desp_total + camp_total

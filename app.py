@@ -102,6 +102,7 @@ with st.sidebar:
         "🔧 Manutenção",
         "🧴 Estoque de Insumos",
         "📋 Relatórios",
+        "📣 Marketing",
         "⚙️ Configurações",
     ]
 
@@ -146,6 +147,9 @@ elif pagina == "🧴 Estoque de Insumos":
     render()
 elif pagina == "📋 Relatórios":
     from modules.relatorios import render
+    render()
+elif pagina == "📣 Marketing":
+    from modules.marketing import render
     render()
 elif pagina == "⚙️ Configurações":
     from modules.configuracoes import render
