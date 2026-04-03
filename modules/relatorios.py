@@ -95,11 +95,28 @@ def _gerar_excel(dados):
     return output
 
 
+def _safe_text(text):
+    """Remove/substitui caracteres fora do latin-1 para compatibilidade com fontes PDF padrão."""
+    replacements = {
+        "\u2014": "-",   # em dash —
+        "\u2013": "-",   # en dash –
+        "\u201c": '"',   # "
+        "\u201d": '"',   # "
+        "\u2018": "'",   # '
+        "\u2019": "'",   # '
+        "\u2026": "...", # …
+    }
+    for char, repl in replacements.items():
+        text = text.replace(char, repl)
+    # Fallback: substituir qualquer caractere fora do latin-1 por '?'
+    return text.encode("latin-1", errors="replace").decode("latin-1")
+
+
 def _gerar_pdf(dados):
     """Gera arquivo PDF com os dados do relatório."""
     from fpdf import FPDF
 
-    empresa = get_config("empresa_nome", "Operário - Serviços e Locações")
+    empresa = _safe_text(get_config("empresa_nome", "Operario - Servicos e Locacoes"))
 
     pdf = FPDF()
     pdf.add_page()
@@ -109,7 +126,7 @@ def _gerar_pdf(dados):
     pdf.set_font("Helvetica", "B", 16)
     pdf.cell(0, 10, empresa, ln=True, align="C")
     pdf.set_font("Helvetica", "", 12)
-    pdf.cell(0, 8, f"Relatório Mensal — {dados['mes']}", ln=True, align="C")
+    pdf.cell(0, 8, _safe_text(f"Relatorio Mensal - {dados['mes']}"), ln=True, align="C")
     pdf.ln(10)
 
     # Resumo Financeiro
@@ -119,7 +136,7 @@ def _gerar_pdf(dados):
     pdf.cell(0, 7, f"Faturamento Bruto: {_formatar_brl(dados['faturamento_bruto'])}", ln=True)
     pdf.cell(0, 7, f"Despesas Totais: {_formatar_brl(dados['despesas_total'])}", ln=True)
     pdf.cell(0, 7, f"Lucro Real: {_formatar_brl(dados['lucro_real'])}", ln=True)
-    pdf.cell(0, 7, f"Número de Locações: {dados['num_locacoes']}", ln=True)
+    pdf.cell(0, 7, _safe_text(f"Numero de Locacoes: {dados['num_locacoes']}"), ln=True)
     pdf.ln(8)
 
     # Despesas por Categoria
@@ -129,16 +146,16 @@ def _gerar_pdf(dados):
         pdf.set_font("Helvetica", "", 11)
         for cat, val in dados["despesas_por_categoria"].items():
             label = CATEGORIAS_LABELS.get(cat, cat)
-            pdf.cell(0, 7, f"  {label}: {_formatar_brl(val)}", ln=True)
+            pdf.cell(0, 7, _safe_text(f"  {label}: {_formatar_brl(val)}"), ln=True)
         pdf.ln(8)
 
     # Ocupação por Equipamento
     if dados["ocupacao_detalhada"]:
         pdf.set_font("Helvetica", "B", 13)
-        pdf.cell(0, 8, "Taxa de Ocupação por Equipamento", ln=True)
+        pdf.cell(0, 8, _safe_text("Taxa de Ocupacao por Equipamento"), ln=True)
         pdf.set_font("Helvetica", "", 11)
         for item in dados["ocupacao_detalhada"]:
-            pdf.cell(0, 7, f"  {item['Equipamento']}: {item['Taxa de Ocupação (%)']}%", ln=True)
+            pdf.cell(0, 7, _safe_text(f"  {item['Equipamento']}: {item['Taxa de Ocupação (%)']}%"), ln=True)
         pdf.ln(8)
 
     # Rodapé
