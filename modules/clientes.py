@@ -239,9 +239,12 @@ def _secao_edicao(clientes):
     )
     if confirmacao:
         if st.button("🗑️ Excluir cliente", key=f"cli_btn_del_{cid}", type="primary"):
-            excluir_cliente(cid)
-            st.success(f"Cliente **{cliente['nome']}** excluído.")
-            st.rerun()
+            try:
+                excluir_cliente(cid)
+                st.success(f"Cliente **{cliente['nome']}** excluído.")
+                st.rerun()
+            except ValueError as e:
+                st.error(str(e))
 
     # ── Histórico de locações ─────────────────
     st.markdown("#### Histórico de locações")

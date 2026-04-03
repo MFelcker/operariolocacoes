@@ -155,8 +155,19 @@ def _render_despesas_gerais():
             if c_edit.button("✏️", key=f"edit_desp_{did}"):
                 st.session_state[f"editando_desp_{did}"] = True
             if c_del.button("🗑️", key=f"del_desp_{did}"):
+                st.session_state[f"confirmar_del_desp_{did}"] = True
+
+        # Confirmação de exclusão
+        if st.session_state.get(f"confirmar_del_desp_{did}", False):
+            st.warning(f"Tem certeza que deseja excluir a despesa #{did}?")
+            col_sim, col_nao = st.columns(2)
+            if col_sim.button("✅ Sim, excluir", key=f"conf_del_desp_{did}"):
                 excluir_despesa(did)
+                st.session_state.pop(f"confirmar_del_desp_{did}", None)
                 st.success("Despesa excluída.")
+                st.rerun()
+            if col_nao.button("❌ Cancelar", key=f"canc_del_desp_{did}"):
+                st.session_state.pop(f"confirmar_del_desp_{did}", None)
                 st.rerun()
 
         # Formulário de edição inline
@@ -320,8 +331,18 @@ def _render_parcelas_equipamento():
             )
         with col_del:
             if st.button("🗑️ Excluir", key=f"del_pe_{pe_id}"):
+                st.session_state[f"confirmar_del_pe_{pe_id}"] = True
+
+        if st.session_state.get(f"confirmar_del_pe_{pe_id}", False):
+            st.warning(f"Tem certeza que deseja excluir o parcelamento de **{pe['nome_equipamento']}** e todas as suas parcelas?")
+            col_sim, col_nao = st.columns(2)
+            if col_sim.button("✅ Sim, excluir", key=f"conf_del_pe_{pe_id}"):
                 excluir_parcelas_equipamento(pe_id)
+                st.session_state.pop(f"confirmar_del_pe_{pe_id}", None)
                 st.success("Parcelamento excluído com sucesso!")
+                st.rerun()
+            if col_nao.button("❌ Cancelar", key=f"canc_del_pe_{pe_id}"):
+                st.session_state.pop(f"confirmar_del_pe_{pe_id}", None)
                 st.rerun()
 
         # Parcelas individuais

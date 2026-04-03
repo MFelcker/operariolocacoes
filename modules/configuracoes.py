@@ -137,9 +137,12 @@ def render():
                         confirmar = st.checkbox("Confirmar exclusão", key=f"conf_del_eq_{eq['id']}")
                         if confirmar:
                             if st.button("🗑️ Excluir", key=f"del_eq_{eq['id']}"):
-                                excluir_equipamento(eq["id"])
-                                st.success("Equipamento excluído!")
-                                st.rerun()
+                                try:
+                                    excluir_equipamento(eq["id"])
+                                    st.success("Equipamento excluído!")
+                                    st.rerun()
+                                except ValueError as e:
+                                    st.error(str(e))
 
     # ── Backup ────────────────────────────────
     with tab4:

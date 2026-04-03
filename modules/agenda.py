@@ -3,6 +3,7 @@ Modulo Agenda — Calendario de ocupacao e disponibilidade das maquinas.
 """
 import calendar
 from datetime import date, datetime, timedelta
+from typing import Optional
 
 import streamlit as st
 
@@ -30,7 +31,7 @@ def _cor_maquina(idx: int) -> str:
     return CORES_MAQUINAS[idx % len(CORES_MAQUINAS)]
 
 
-def _parse_data(valor) -> date | None:
+def _parse_data(valor) -> Optional[date]:
     """Converte string ou date para date."""
     if valor is None:
         return None

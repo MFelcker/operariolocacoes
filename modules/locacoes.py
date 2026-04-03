@@ -44,7 +44,8 @@ def _calcular_total(loc) -> float:
     data_saida = _parse_date(loc["data_saida"])
     data_fim = _parse_date(loc["data_retorno_efetiva"]) or _parse_date(loc["data_retorno_prevista"])
     if data_saida and data_fim:
-        dias = max((data_fim - data_saida).days, 1)
+        dias = (data_fim - data_saida).days + 1
+        dias = max(dias, 1)
     else:
         dias = 1
     diaria = float(loc["valor_diaria"] or 0)

@@ -155,9 +155,20 @@ def render():
 
                 # Excluir
                 if cols[6].button("🗑️", key=f"del_m_{reg['id']}"):
-                    excluir_manutencao(reg["id"])
-                    st.success("Manutenção excluída.")
-                    st.rerun()
+                    st.session_state[f"confirmar_del_manut_{reg['id']}"] = True
+
+                # Confirmação de exclusão
+                if st.session_state.get(f"confirmar_del_manut_{reg['id']}", False):
+                    st.warning(f"Tem certeza que deseja excluir a manutenção #{reg['id']}?")
+                    col_sim, col_nao = st.columns(2)
+                    if col_sim.button("✅ Sim", key=f"conf_del_m_{reg['id']}"):
+                        excluir_manutencao(reg["id"])
+                        st.session_state.pop(f"confirmar_del_manut_{reg['id']}", None)
+                        st.success("Manutenção excluída.")
+                        st.rerun()
+                    if col_nao.button("❌ Cancelar", key=f"canc_del_m_{reg['id']}"):
+                        st.session_state.pop(f"confirmar_del_manut_{reg['id']}", None)
+                        st.rerun()
 
                 # Formulário de edição inline
                 if st.session_state.get(f"editando_manut_{reg['id']}", False):

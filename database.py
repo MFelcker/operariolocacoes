@@ -233,7 +233,15 @@ def atualizar_equipamento(eid, nome, descricao, data_aquisicao, custo_aquisicao,
 
 
 def excluir_equipamento(eid):
+    """Exclui equipamento. Levanta ValueError se houver registros vinculados."""
     with get_conn() as conn:
+        # Verificar dependências antes de excluir
+        loc = conn.execute("SELECT COUNT(*) as n FROM locacoes WHERE equipamento_id = ?", (eid,)).fetchone()
+        if loc["n"] > 0:
+            raise ValueError(f"Não é possível excluir: existem {loc['n']} locação(ões) vinculadas a este equipamento.")
+        man = conn.execute("SELECT COUNT(*) as n FROM manutencoes WHERE equipamento_id = ?", (eid,)).fetchone()
+        if man["n"] > 0:
+            raise ValueError(f"Não é possível excluir: existem {man['n']} manutenção(ões) vinculadas a este equipamento.")
         conn.execute("DELETE FROM equipamentos WHERE id = ?", (eid,))
 
 
@@ -271,7 +279,11 @@ def atualizar_cliente(cid, nome, telefone, endereco, observacoes, inadimplente, 
 
 
 def excluir_cliente(cid):
+    """Exclui cliente. Levanta ValueError se houver locações vinculadas."""
     with get_conn() as conn:
+        loc = conn.execute("SELECT COUNT(*) as n FROM locacoes WHERE cliente_id = ?", (cid,)).fetchone()
+        if loc["n"] > 0:
+            raise ValueError(f"Não é possível excluir: existem {loc['n']} locação(ões) vinculadas a este cliente.")
         conn.execute("DELETE FROM clientes WHERE id = ?", (cid,))
 
 
